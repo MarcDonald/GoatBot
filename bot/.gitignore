@@ -23,3 +23,6 @@ tmp/
 
 # Secrets
 .env
+
+# Custom commands
+commands/
