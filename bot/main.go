@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	log.Println("Starting Bot...")
+	log.Println("Loading environment config...")
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")

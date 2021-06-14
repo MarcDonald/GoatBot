@@ -2,5 +2,5 @@
 	"invocation": "hello",
 	"message": "Hi!",
 	"mod_only": false,
-	"timer": -1
+	"message_interval": -1
 }

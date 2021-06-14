@@ -2,20 +2,27 @@ package bot
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-type Command struct {
-	Invocation string  `json:"invocation"`
-	Message    string  `json:"message"`
-	ModOnly    bool    `json:"mod_only"`
-	Timer      float32 `json:"timer"`
+type InvokableCommand struct {
+	Invocation      string  `json:"invocation"`
+	Message         string  `json:"message"`
+	ModOnly         bool    `json:"mod_only"`
 }
 
-var CommandList []Command
+type IntervalMessage struct {
+	Message string `json:"message"`
+	MessageInterval int `json:"message_interval"`
+}
+
+var InvokableCommandList []InvokableCommand
+var IntervalMessages []IntervalMessage
 
 func LoadCommands() {
 	log.Println("Loading commands")
@@ -38,7 +45,8 @@ func LoadCommands() {
 		}
 	}
 
-	log.Printf("%d commands successfully loaded\n", len(CommandList))
+	log.Printf("%d invokable commands successfully loaded\n", len(InvokableCommandList))
+	log.Printf("%d interval commands successfully loaded\n", len(IntervalMessages))
 }
 
 func loadFile(filePath string) error {
@@ -67,10 +75,17 @@ func loadFile(filePath string) error {
 			log.Println("Error loading fileData " + filePath)
 		}
 
-		commandFromFile := Command{}
-		_ = json.Unmarshal(fileData, &commandFromFile)
-
-		CommandList = append(CommandList, commandFromFile)
+		if strings.HasSuffix(filePath, ".interval.json") {
+			commandFromFile := IntervalMessage{}
+			_ = json.Unmarshal(fileData, &commandFromFile)
+			IntervalMessages = append(IntervalMessages, commandFromFile)
+		} else if strings.HasSuffix(filePath, ".command.json"){
+			commandFromFile := InvokableCommand{}
+			_ = json.Unmarshal(fileData, &commandFromFile)
+			InvokableCommandList = append(InvokableCommandList, commandFromFile)
+		} else {
+			return errors.New("file does not have a valid suffix (i.e. `.command.json` or `.interval.json`")
+		}
 	}
 	return nil
 }
