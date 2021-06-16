@@ -1,6 +1,5 @@
 {
 	"invocation": "hello",
 	"message": "Hi!",
-	"mod_only": false,
-	"message_interval": -1
+	"mod_only": false
 }

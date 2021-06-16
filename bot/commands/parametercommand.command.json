@@ -1,0 +1,13 @@
+{
+	"invocation": "lurk",
+	"parameters": [
+		{
+			"name": "username"
+		},
+		{
+			"name": "reason"
+		}
+	],
+	"message": "Enjoy lurking, $username, while you are $reason!",
+	"mod_only": false
+}

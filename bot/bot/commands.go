@@ -10,20 +10,26 @@ import (
 	"strings"
 )
 
+type CommandParameter struct {
+	Name string `json:"name"`
+}
+
 type InvokableCommand struct {
-	Invocation      string  `json:"invocation"`
-	Message         string  `json:"message"`
-	ModOnly         bool    `json:"mod_only"`
+	Invocation string             `json:"invocation"`
+	Parameters []CommandParameter `json:"parameters"`
+	Message    string             `json:"message"`
+	ModOnly    bool               `json:"mod_only"`
 }
 
 type IntervalMessage struct {
-	Message string `json:"message"`
-	MessageInterval int `json:"message_interval"`
+	Message         string `json:"message"`
+	MessageInterval int    `json:"message_interval"`
 }
 
 var InvokableCommandList []InvokableCommand
-var IntervalMessages []IntervalMessage
+var IntervalMessageList []IntervalMessage
 
+// LoadCommands loads the commands from the commands/ folder into the bot's memory
 func LoadCommands() {
 	log.Println("Loading commands")
 
@@ -46,9 +52,10 @@ func LoadCommands() {
 	}
 
 	log.Printf("%d invokable commands successfully loaded\n", len(InvokableCommandList))
-	log.Printf("%d interval commands successfully loaded\n", len(IntervalMessages))
+	log.Printf("%d interval commands successfully loaded\n", len(IntervalMessageList))
 }
 
+// Loads an individual command file and store the command into memory
 func loadFile(filePath string) error {
 	currentFile, err := os.Open(filePath)
 	if currentFile != nil {
@@ -78,8 +85,8 @@ func loadFile(filePath string) error {
 		if strings.HasSuffix(filePath, ".interval.json") {
 			commandFromFile := IntervalMessage{}
 			_ = json.Unmarshal(fileData, &commandFromFile)
-			IntervalMessages = append(IntervalMessages, commandFromFile)
-		} else if strings.HasSuffix(filePath, ".command.json"){
+			IntervalMessageList = append(IntervalMessageList, commandFromFile)
+		} else if strings.HasSuffix(filePath, ".command.json") {
 			commandFromFile := InvokableCommand{}
 			_ = json.Unmarshal(fileData, &commandFromFile)
 			InvokableCommandList = append(InvokableCommandList, commandFromFile)

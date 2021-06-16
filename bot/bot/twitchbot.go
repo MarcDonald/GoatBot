@@ -4,13 +4,15 @@ import (
 	"errors"
 	"github.com/gempir/go-twitch-irc/v2"
 	"log"
+	"math"
 	"os"
 	"strings"
 )
 
 var prefix, channel, nickname string
-var messageCount = 0
+var messageCount uint32 = 0
 
+// Init initializes variables for the bot and loads the commands
 func Init() {
 	log.Println("Setting up bot...")
 	prefix = os.Getenv("PREFIX")
@@ -30,6 +32,7 @@ func Init() {
 	LoadCommands()
 }
 
+// Start starts the bot
 func Start() {
 	log.Println("Starting bot...")
 	oauth := os.Getenv("SECRET")
@@ -57,6 +60,7 @@ func Start() {
 	}
 }
 
+// Handle message event
 func onMessage(client *twitch.Client, message twitch.PrivateMessage) {
 	incrementMessageCount(message)
 
@@ -70,34 +74,80 @@ func onMessage(client *twitch.Client, message twitch.PrivateMessage) {
 		commandString := getCommandStringFromMessage(message)
 		for _, command := range InvokableCommandList {
 			if command.Invocation == commandString {
-				if !command.ModOnly || (command.ModOnly && (message.User.Badges["moderator"] == 1) || (message.User.Badges["broadcaster"] == 1)) {
-					client.Say(channel, command.Message)
+				if hasPermissionToInvoke(command, message) {
+					if len(command.Parameters) != 0 {
+						err, messageParameters := getParametersFromMessage(message, command)
+						if err != nil {
+							client.Say(channel, "Invalid usage of command")
+							log.Println(err.Error())
+						} else {
+							formattedMessage := replacePlaceholdersWithParameters(command.Message, command.Parameters, messageParameters)
+							client.Say(channel, formattedMessage)
+						}
+					} else {
+						client.Say(channel, command.Message)
+					}
 				}
 			}
 		}
 	}
 }
 
+// Returns true if a command is mod only and the user invoking the command is a mod or broadcaster, or if the command is not mod only
+func hasPermissionToInvoke(command InvokableCommand, message twitch.PrivateMessage) bool {
+	return !command.ModOnly || (command.ModOnly && (message.User.Badges["moderator"] == 1) || (message.User.Badges["broadcaster"] == 1))
+}
+
+// Returns the content of the message without the prefix
 func parseMessageText(message twitch.PrivateMessage) string {
 	messageText := message.Message[len(prefix):]
 	return strings.ToLower(messageText)
 }
 
+// Returns the command string used to invoke the command
 func getCommandStringFromMessage(message twitch.PrivateMessage) string {
 	messageText := parseMessageText(message)
 	return strings.Split(messageText, " ")[0]
 }
 
 func incrementMessageCount(message twitch.PrivateMessage) {
+	if messageCount == math.MaxUint32-1 {
+		messageCount = 0
+	}
+
 	if message.User.Name != nickname {
 		messageCount += 1
 	}
 }
 
+// Goes through the IntervalMessageList and sends a message if it is time to send that message
 func handleIntervalMessage(client *twitch.Client) {
-	for _, intervalMessage := range IntervalMessages {
-		if messageCount % intervalMessage.MessageInterval == 0 {
+	for _, intervalMessage := range IntervalMessageList {
+		if messageCount%uint32(intervalMessage.MessageInterval) == uint32(0) {
 			client.Say(channel, intervalMessage.Message)
 		}
 	}
+}
+
+// Returns the parameters used when invoking a command
+func getParametersFromMessage(message twitch.PrivateMessage, command InvokableCommand) (error, []string) {
+	var numParameters = len(command.Parameters)
+	messageText := parseMessageText(message)
+	messageWords := strings.Split(messageText, " ")
+
+	if len(messageWords[1:]) < numParameters {
+		return errors.New("number of parameters given does not match the number of parameters in the command"), nil
+	}
+
+	parameters := messageWords[1 : numParameters+1]
+	return nil, parameters
+}
+
+// Returns the command message with the placeholders replaced with the given parameters
+func replacePlaceholdersWithParameters(message string, parameters []CommandParameter, messageParameters []string) string {
+	var formattedMessage = message
+	for i, parameter := range parameters {
+		formattedMessage = strings.Replace(formattedMessage, "$"+parameter.Name, messageParameters[i], -1)
+	}
+	return formattedMessage
 }
