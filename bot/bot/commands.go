@@ -28,6 +28,7 @@ type IntervalMessage struct {
 
 var InvokableCommandList []InvokableCommand
 var IntervalMessageList []IntervalMessage
+var ReservedKeywords = [...]string{"username"}
 
 // LoadCommands loads the commands from the commands/ folder into the bot's memory
 func LoadCommands() {
@@ -89,9 +90,25 @@ func loadFile(filePath string) error {
 		} else if strings.HasSuffix(filePath, ".command.json") {
 			commandFromFile := InvokableCommand{}
 			_ = json.Unmarshal(fileData, &commandFromFile)
-			InvokableCommandList = append(InvokableCommandList, commandFromFile)
+			err := checkParametersForReservedKeyword(commandFromFile)
+			if err != nil {
+				log.Println("Error importing command " + commandFromFile.Invocation + ": " + err.Error())
+			} else {
+				InvokableCommandList = append(InvokableCommandList, commandFromFile)
+			}
 		} else {
 			return errors.New("file does not have a valid suffix (i.e. `.command.json` or `.interval.json`")
+		}
+	}
+	return nil
+}
+
+func checkParametersForReservedKeyword(command InvokableCommand) error {
+	for _, parameter := range command.Parameters {
+		for _, keyword := range ReservedKeywords {
+			if strings.ToLower(parameter.Name) == keyword {
+				return errors.New("reserved keyword '" + keyword + "' cannot be used as a parameter name")
+			}
 		}
 	}
 	return nil

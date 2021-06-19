@@ -15,3 +15,10 @@ The Twitch bot
       and then received 40 messages in 20 seconds, the interval message would not be sent twice. Note also that the
       bot's responses in chat do not count towards the message count
 * Run the command `go run .`
+
+## Reserved keywords
+
+You cannot use the following keywords as parameter names in commands
+
+* `username`
+    * The username of the user who invoked the command

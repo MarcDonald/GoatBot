@@ -81,7 +81,8 @@ func onMessage(client *twitch.Client, message twitch.PrivateMessage) {
 							client.Say(channel, "Invalid usage of command")
 							log.Println(err.Error())
 						} else {
-							formattedMessage := replacePlaceholdersWithParameters(command.Message, command.Parameters, messageParameters)
+							formattedMessage := replaceReservedKeywordsWithValues(command.Message, message)
+							formattedMessage = replaceCommandPlaceholdersWithValues(formattedMessage, command.Parameters, messageParameters)
 							client.Say(channel, formattedMessage)
 						}
 					} else {
@@ -143,8 +144,17 @@ func getParametersFromMessage(message twitch.PrivateMessage, command InvokableCo
 	return nil, parameters
 }
 
-// Returns the command message with the placeholders replaced with the given parameters
-func replacePlaceholdersWithParameters(message string, parameters []CommandParameter, messageParameters []string) string {
+// Returns the message with the reserved keywords replaced with their values
+func replaceReservedKeywordsWithValues(commandMessage string, message twitch.PrivateMessage) string {
+	var formattedMessage = commandMessage
+	log.Println(formattedMessage)
+	formattedMessage = strings.Replace(formattedMessage, "$username", message.User.Name, -1)
+	log.Println(formattedMessage)
+	return formattedMessage
+}
+
+// Returns the command message with the placeholders replaced with the given values
+func replaceCommandPlaceholdersWithValues(message string, parameters []CommandParameter, messageParameters []string) string {
 	var formattedMessage = message
 	for i, parameter := range parameters {
 		formattedMessage = strings.Replace(formattedMessage, "$"+parameter.Name, messageParameters[i], -1)
