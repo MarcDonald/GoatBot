@@ -2,6 +2,8 @@ package bot
 
 import (
 	"github.com/gempir/go-twitch-irc/v2"
+	"math"
+	"strconv"
 	"testing"
 )
 
@@ -113,5 +115,133 @@ func TestParseMessageText_JustPrefix(t *testing.T) {
 	result := parseMessageText(twitch.PrivateMessage{Message: testMessage})
 	if result != "" {
 		t.Error("Test Failed: Expected to be '' but was " + result)
+	}
+}
+
+func TestGetCommandStringFromMessage_SingleWordMessage(t *testing.T) {
+	prefix = "!"
+	err, result := getCommandStringFromMessage(twitch.PrivateMessage{Message: "!test"})
+	if err != nil {
+		t.Error("Unexpected error: " + err.Error())
+	}
+	if result != "test" {
+		t.Error("Test Failed: Expected to be 'test' but was " + result)
+	}
+}
+
+func TestGetCommandStringFromMessage_MultiWordMessage(t *testing.T) {
+	prefix = "!"
+	err, result := getCommandStringFromMessage(twitch.PrivateMessage{Message: "!test message"})
+	if err != nil {
+		t.Error("Unexpected error: " + err.Error())
+	}
+	if result != "test" {
+		t.Error("Test Failed: Expected to be 'test' but was " + result)
+	}
+}
+
+func TestGetCommandStringFromMessage_JustPrefix(t *testing.T) {
+	prefix = "!"
+	err, result := getCommandStringFromMessage(twitch.PrivateMessage{Message: "!"})
+	if err == nil {
+		t.Error("Expected error but received nil")
+	}
+	if result != "" {
+		t.Error("Test Failed: Expected to be '' but was " + result)
+	}
+}
+
+func TestIncrementMessageCount_NormalIncrement(t *testing.T) {
+	messageCount = 0
+	nickname = "test"
+	incrementMessageCount(twitch.PrivateMessage{User: twitch.User{Name: "different"}})
+	if messageCount != 1 {
+		t.Error("Test Failed: Expected messageCount to be 1 but was " + strconv.FormatInt(int64(messageCount), 10))
+	}
+}
+
+func TestIncrementMessageCount_MessageFromBot(t *testing.T) {
+	messageCount = 0
+	nickname = "test"
+	incrementMessageCount(twitch.PrivateMessage{User: twitch.User{Name: "test"}})
+	if messageCount != 0 {
+		t.Error("Test Failed: Expected messageCount to be 0 but was " + strconv.FormatInt(int64(messageCount), 10))
+	}
+}
+
+func TestIncrementMessageCount_MaxMessageCount(t *testing.T) {
+	messageCount = math.MaxUint32 - 1
+	nickname = "test"
+	incrementMessageCount(twitch.PrivateMessage{User: twitch.User{Name: "different"}})
+	if messageCount != 1 {
+		t.Error("Test Failed: Expected messageCount to be 1 but was " + strconv.FormatInt(int64(messageCount), 10))
+	}
+}
+
+func TestGetParametersFromMessage_MismatchingNumberOfParameters(t *testing.T) {
+	prefix = "!"
+	command := InvokableCommand{Parameters: []CommandParameter{{Name: "test"}, {Name: "another"}}}
+
+	err, result := getParametersFromMessage(twitch.PrivateMessage{Message: "!command first"}, command)
+	if err == nil {
+		t.Error("Test Failed: Expected error but was nil")
+	} else {
+		if err.Error() != "number of parameters given does not match the number of parameters in the command" {
+			t.Error("Test Failed: Expected error to be 'number of parameters given does not match the number of parameters in the command' but was: " + err.Error())
+		}
+	}
+
+	if result != nil {
+		t.Logf("Test Failed: Expected result to be nil but was: %s\n", result)
+		t.Fail()
+	}
+}
+
+func TestGetParametersFromMessage_ValidNumberOfParameters(t *testing.T) {
+	prefix = "!"
+	command := InvokableCommand{Parameters: []CommandParameter{{Name: "test"}, {Name: "another"}}}
+
+	err, result := getParametersFromMessage(twitch.PrivateMessage{Message: "!command first second"}, command)
+	if err != nil {
+		t.Error("Test Failed: Expected no error but was: " + err.Error())
+	}
+	if !(len(result) == 2 || result[0] == "first" || result[1] == "second") {
+		t.Logf("Test Failed: Incorrect slice returned, expected [\"first\", \"second\"] but received %s", result)
+		t.Fail()
+	}
+}
+
+func TestReplaceReservedKeywordsWithValues_ReplaceUsernameOnce(t *testing.T) {
+	result := replaceReservedKeywordsWithValues("hello $username", twitch.PrivateMessage{User: twitch.User{Name: "testUsername"}})
+	if result != "hello testUsername" {
+		t.Error("Test Failed: Expected result to be 'hello testUsername' but was : " + result)
+	}
+}
+
+func TestReplaceReservedKeywordsWithValues_ReplaceUsernameMultipleTimes(t *testing.T) {
+	result := replaceReservedKeywordsWithValues("hello $username and $username", twitch.PrivateMessage{User: twitch.User{Name: "testUsername"}})
+	if result != "hello testUsername and testUsername" {
+		t.Error("Test Failed: Expected result to be 'hello testUsername and testUsername' but was : " + result)
+	}
+}
+
+func TestReplaceCommandPlaceholdersWithValues_ValidOneReplacement(t *testing.T) {
+	result := replaceCommandPlaceholdersWithValues("test $first", []CommandParameter{{Name: "first"}}, []string{"testValueOne"})
+	if result != "test testValueOne" {
+		t.Error("Test Failed: Expected result to be 'test testValueOne' but was: " + result)
+	}
+}
+
+func TestReplaceCommandPlaceholdersWithValues_ValidMultipleReplacementsOfOneParameter(t *testing.T) {
+	result := replaceCommandPlaceholdersWithValues("test $first and $first", []CommandParameter{{Name: "first"}}, []string{"testValueOne"})
+	if result != "test testValueOne and testValueOne" {
+		t.Error("Test Failed: Expected result to be 'test testValueOne and testValueOne' but was: " + result)
+	}
+}
+
+func TestReplaceCommandPlaceholdersWithValues_ValidMultipleReplacementsOfMultipleParameters(t *testing.T) {
+	result := replaceCommandPlaceholdersWithValues("test $first and $second and $first and $third", []CommandParameter{{Name: "first"}, {Name: "second"}, {Name: "third"}}, []string{"testValueOne", "testValueTwo", "testValueThree"})
+	if result != "test testValueOne and testValueTwo and testValueOne and testValueThree" {
+		t.Error("Test Failed: Expected result to be 'test testValueOne and testValueTwo and testValueOne and testValueThree' but was: " + result)
 	}
 }

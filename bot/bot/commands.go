@@ -30,6 +30,8 @@ var InvokableCommandList []InvokableCommand
 var IntervalMessageList []IntervalMessage
 var ReservedKeywords = [...]string{"username"}
 
+// TODO test
+
 // LoadCommands loads the commands from the commands/ folder into the bot's memory
 func LoadCommands() {
 	log.Println("Loading commands")
@@ -56,6 +58,7 @@ func LoadCommands() {
 	log.Printf("%d interval commands successfully loaded\n", len(IntervalMessageList))
 }
 
+// TODO test and probably needs split up into multiple functions
 // Loads an individual command file and store the command into memory
 func loadFile(filePath string) error {
 	currentFile, err := os.Open(filePath)

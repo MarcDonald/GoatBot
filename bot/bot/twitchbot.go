@@ -60,6 +60,7 @@ func Start() {
 	}
 }
 
+// TODO to test this probably need to do some DI
 // Handle message event
 func onMessage(client *twitch.Client, message twitch.PrivateMessage) {
 	incrementMessageCount(message)
@@ -71,22 +72,26 @@ func onMessage(client *twitch.Client, message twitch.PrivateMessage) {
 	}
 
 	if strings.HasPrefix(message.Message, prefix) {
-		commandString := getCommandStringFromMessage(message)
-		for _, command := range InvokableCommandList {
-			if command.Invocation == commandString {
-				if hasPermissionToInvoke(command, message) {
-					if len(command.Parameters) != 0 {
-						err, messageParameters := getParametersFromMessage(message, command)
-						if err != nil {
-							client.Say(channel, "Invalid usage of command")
-							log.Println(err.Error())
+		err, commandString := getCommandStringFromMessage(message)
+		if err != nil {
+			log.Println("Error parsing command from message: " + err.Error())
+		} else {
+			for _, command := range InvokableCommandList {
+				if command.Invocation == commandString {
+					if hasPermissionToInvoke(command, message) {
+						if len(command.Parameters) != 0 {
+							err, messageParameters := getParametersFromMessage(message, command)
+							if err != nil {
+								client.Say(channel, "Invalid usage of command")
+								log.Println(err.Error())
+							} else {
+								formattedMessage := replaceReservedKeywordsWithValues(command.Message, message)
+								formattedMessage = replaceCommandPlaceholdersWithValues(formattedMessage, command.Parameters, messageParameters)
+								client.Say(channel, formattedMessage)
+							}
 						} else {
-							formattedMessage := replaceReservedKeywordsWithValues(command.Message, message)
-							formattedMessage = replaceCommandPlaceholdersWithValues(formattedMessage, command.Parameters, messageParameters)
-							client.Say(channel, formattedMessage)
+							client.Say(channel, command.Message)
 						}
-					} else {
-						client.Say(channel, command.Message)
 					}
 				}
 			}
@@ -106,11 +111,17 @@ func parseMessageText(message twitch.PrivateMessage) string {
 }
 
 // Returns the command string used to invoke the command
-func getCommandStringFromMessage(message twitch.PrivateMessage) string {
+func getCommandStringFromMessage(message twitch.PrivateMessage) (error, string) {
 	messageText := parseMessageText(message)
-	return strings.Split(messageText, " ")[0]
+	command := strings.Split(messageText, " ")[0]
+	if command != "" {
+		return nil, command
+	} else {
+		return errors.New("missing command"), ""
+	}
 }
 
+// Increments the message count (excluding messages from the bot)
 func incrementMessageCount(message twitch.PrivateMessage) {
 	if messageCount == math.MaxUint32-1 {
 		messageCount = 0
@@ -125,6 +136,7 @@ func incrementMessageCount(message twitch.PrivateMessage) {
 func handleIntervalMessage(client *twitch.Client) {
 	for _, intervalMessage := range IntervalMessageList {
 		if messageCount%uint32(intervalMessage.MessageInterval) == uint32(0) {
+			// TODO to test this probably need to do some DI
 			client.Say(channel, intervalMessage.Message)
 		}
 	}
@@ -147,15 +159,13 @@ func getParametersFromMessage(message twitch.PrivateMessage, command InvokableCo
 // Returns the message with the reserved keywords replaced with their values
 func replaceReservedKeywordsWithValues(commandMessage string, message twitch.PrivateMessage) string {
 	var formattedMessage = commandMessage
-	log.Println(formattedMessage)
 	formattedMessage = strings.Replace(formattedMessage, "$username", message.User.Name, -1)
-	log.Println(formattedMessage)
 	return formattedMessage
 }
 
 // Returns the command message with the placeholders replaced with the given values
-func replaceCommandPlaceholdersWithValues(message string, parameters []CommandParameter, messageParameters []string) string {
-	var formattedMessage = message
+func replaceCommandPlaceholdersWithValues(commandMessage string, parameters []CommandParameter, messageParameters []string) string {
+	var formattedMessage = commandMessage
 	for i, parameter := range parameters {
 		formattedMessage = strings.Replace(formattedMessage, "$"+parameter.Name, messageParameters[i], -1)
 	}
