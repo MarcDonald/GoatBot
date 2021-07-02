@@ -13,6 +13,7 @@ type CommandProcessor interface {
 	IncrementMessageCount(message twitch.PrivateMessage)
 	HandleIntervalMessage(client ChatClient)
 	HasPermissionToInvoke(command InvokableCommand, message twitch.PrivateMessage) bool
+	HasCommandBeenInvoked(command InvokableCommand, commandString string) bool
 	GetCommandStringFromMessage(message twitch.PrivateMessage) (error, string)
 	GetParametersFromMessage(message twitch.PrivateMessage, command InvokableCommand) (error, []string)
 	ReplaceReservedKeywordsWithValues(commandMessage string, message twitch.PrivateMessage) string
@@ -39,6 +40,20 @@ func (h *CommandHandler) HandleIntervalMessage(client ChatClient) {
 			client.Say(channel, intervalMessage.Message)
 		}
 	}
+}
+
+func (h *CommandHandler) HasCommandBeenInvoked(command InvokableCommand, commandString string) bool {
+	if commandString == command.Invocation {
+		return true
+	}
+
+	for _, alias := range command.Aliases {
+		if commandString == alias {
+			return true
+		}
+	}
+
+	return false
 }
 
 // HasPermissionToInvoke returns true if a command is mod only and the user invoking the command is a mod or broadcaster, or if the command is not mod only

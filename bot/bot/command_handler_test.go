@@ -117,6 +117,62 @@ func TestHandleIntervalMessage_MultipleOfMessageInterval(t *testing.T) {
 	}
 }
 
+func TestHasCommandBeenInvoked_UsingInvocation(t *testing.T) {
+	handler := CommandHandler{}
+	command := InvokableCommand{
+		Invocation: "invoke",
+		Aliases: []string{"alias1", "alias2"},
+	}
+	result := handler.HasCommandBeenInvoked(command, "invoke")
+
+	if !result {
+		t.Logf("Test Failed: Expected result to be true but was %v\n", result)
+		t.Fail()
+	}
+}
+
+func TestHasCommandBeenInvoked_UsingFirstAlias(t *testing.T) {
+	handler := CommandHandler{}
+	command := InvokableCommand{
+		Invocation: "invoke",
+		Aliases: []string{"alias1", "alias2"},
+	}
+	result := handler.HasCommandBeenInvoked(command, "alias1")
+
+	if !result {
+		t.Logf("Test Failed: Expected result to be true but was %v\n", result)
+		t.Fail()
+	}
+}
+
+func TestHasCommandBeenInvoked_UsingSecondAlias(t *testing.T) {
+	handler := CommandHandler{}
+	command := InvokableCommand{
+		Invocation: "invoke",
+		Aliases: []string{"alias1", "alias2"},
+	}
+	result := handler.HasCommandBeenInvoked(command, "alias2")
+
+	if !result {
+		t.Logf("Test Failed: Expected result to be true but was %v\n", result)
+		t.Fail()
+	}
+}
+
+func TestHasCommandBeenInvoked_NotInvoked(t *testing.T) {
+	handler := CommandHandler{}
+	command := InvokableCommand{
+		Invocation: "invoke",
+		Aliases: []string{"alias1", "alias2"},
+	}
+	result := handler.HasCommandBeenInvoked(command, "somethingelse")
+
+	if result {
+		t.Logf("Test Failed: Expected result to be false but was %v\n", result)
+		t.Fail()
+	}
+}
+
 func TestHasPermissionToInvoke_NotModOnlyCommand(t *testing.T) {
 	testCommand := InvokableCommand{
 		ModOnly: false,

@@ -79,7 +79,7 @@ func onMessage(handler CommandProcessor, client ChatClient, message twitch.Priva
 			log.Println("Error parsing command from message: " + err.Error())
 		} else {
 			for _, command := range InvokableCommandList {
-				if command.Invocation == commandString {
+				if handler.HasCommandBeenInvoked(command, commandString) {
 					if handler.HasPermissionToInvoke(command, message) {
 						if len(command.Parameters) != 0 {
 							err, messageParameters := handler.GetParametersFromMessage(message, command)
@@ -100,4 +100,3 @@ func onMessage(handler CommandProcessor, client ChatClient, message twitch.Priva
 		}
 	}
 }
-

@@ -19,6 +19,7 @@ type InvokableCommand struct {
 	Parameters []CommandParameter `json:"parameters"`
 	Message    string             `json:"message"`
 	ModOnly    bool               `json:"mod_only"`
+	Aliases    []string           `json:"aliases"`
 }
 
 type IntervalMessage struct {
