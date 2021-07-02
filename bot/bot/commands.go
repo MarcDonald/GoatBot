@@ -48,7 +48,7 @@ func LoadCommands() {
 	}
 
 	for _, filePath := range files {
-		err := loadFile(filePath)
+		err := parseFile(filePath)
 		if err != nil {
 			log.Println("Error loading file " + filePath + ": " + err.Error())
 		}
@@ -58,9 +58,9 @@ func LoadCommands() {
 	log.Printf("%d interval commands successfully loaded\n", len(IntervalMessageList))
 }
 
-// TODO test and probably needs split up into multiple functions
+// TODO test
 // Loads an individual command file and store the command into memory
-func loadFile(filePath string) error {
+func parseFile(filePath string) error {
 	currentFile, err := os.Open(filePath)
 	if currentFile != nil {
 		defer func(currentFile *os.File) {
@@ -80,30 +80,43 @@ func loadFile(filePath string) error {
 	}
 
 	if !fileInfo.IsDir() {
-		fileData, fileReadErr := ioutil.ReadFile(filePath)
-
-		if fileReadErr != nil {
-			log.Println("Error loading fileData " + filePath)
-		}
-
-		if strings.HasSuffix(filePath, ".interval.json") {
-			commandFromFile := IntervalMessage{}
-			_ = json.Unmarshal(fileData, &commandFromFile)
-			IntervalMessageList = append(IntervalMessageList, commandFromFile)
-		} else if strings.HasSuffix(filePath, ".command.json") {
-			commandFromFile := InvokableCommand{}
-			_ = json.Unmarshal(fileData, &commandFromFile)
-			err := checkParametersForReservedKeyword(commandFromFile)
-			if err != nil {
-				log.Println("Error importing command " + commandFromFile.Invocation + ": " + err.Error())
-			} else {
-				InvokableCommandList = append(InvokableCommandList, commandFromFile)
-			}
-		} else {
-			return errors.New("file does not have a valid suffix (i.e. `.command.json` or `.interval.json`")
-		}
+		return loadCommandDataFromFile(filePath)
 	}
 	return nil
+}
+
+func loadCommandDataFromFile(filePath string) error {
+	fileData, fileReadErr := ioutil.ReadFile(filePath)
+
+	if fileReadErr != nil {
+		log.Println("Error loading fileData " + filePath)
+	}
+
+	if strings.HasSuffix(filePath, ".interval.json") {
+		loadIntervalCommand(fileData)
+	} else if strings.HasSuffix(filePath, ".command.json") {
+		loadStandardCommand(fileData)
+	} else {
+		return errors.New("file does not have a valid suffix (i.e. `.command.json` or `.interval.json`")
+	}
+	return nil
+}
+
+func loadIntervalCommand(fileData []byte) {
+	commandFromFile := IntervalMessage{}
+	_ = json.Unmarshal(fileData, &commandFromFile)
+	IntervalMessageList = append(IntervalMessageList, commandFromFile)
+}
+
+func loadStandardCommand(fileData []byte) {
+	commandFromFile := InvokableCommand{}
+	_ = json.Unmarshal(fileData, &commandFromFile)
+	err := checkParametersForReservedKeyword(commandFromFile)
+	if err != nil {
+		log.Println("Error importing command " + commandFromFile.Invocation + ": " + err.Error())
+	} else {
+		InvokableCommandList = append(InvokableCommandList, commandFromFile)
+	}
 }
 
 func checkParametersForReservedKeyword(command InvokableCommand) error {
