@@ -1,6 +1,6 @@
 {
 	"invocation": "hello",
-	"message": "Hi!",
+	"message": "Hi, $username!",
 	"mod_only": false,
 	"aliases" : [
 		"hi",

@@ -81,18 +81,18 @@ func onMessage(handler CommandProcessor, client ChatClient, message twitch.Priva
 			for _, command := range InvokableCommandList {
 				if handler.HasCommandBeenInvoked(command, commandString) {
 					if handler.HasPermissionToInvoke(command, message) {
+						formattedMessage := handler.ReplaceReservedKeywordsWithValues(command.Message, message)
 						if len(command.Parameters) != 0 {
 							err, messageParameters := handler.GetParametersFromMessage(message, command)
 							if err != nil {
 								client.Say(channel, "Invalid usage of command")
 								log.Println(err.Error())
 							} else {
-								formattedMessage := handler.ReplaceReservedKeywordsWithValues(command.Message, message)
 								formattedMessage = handler.ReplaceCommandPlaceholdersWithValues(formattedMessage, command.Parameters, messageParameters)
 								client.Say(channel, formattedMessage)
 							}
 						} else {
-							client.Say(channel, command.Message)
+							client.Say(channel, formattedMessage)
 						}
 					}
 				}
