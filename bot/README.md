@@ -1,6 +1,6 @@
 # Bot
 
-The Twitch bot
+The Twitch bot itself
 
 ## Running locally
 
@@ -22,3 +22,17 @@ You cannot use the following keywords as parameter names in commands
 
 * `username`
     * The username of the user who invoked the command
+
+## Open Source Libraries Used 
+
+### [go-twitch-irc](https://github.com/gempir/go-twitch-irc)
+
+Used for connecting to and interacting with Twitch chat
+
+MIT License
+
+### [godotenv](https://github.com/joho/godotenv)
+
+Used to load environment variables
+
+MIT License
